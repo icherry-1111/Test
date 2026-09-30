@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Blend Blast-Off: Digraph Rockets!</title>
+    <style>
+        :root {
+            --primary: #4a90e2;
+            --success: #6cc644;
+            --error: #ff4d4f;
+            --bg-body: #f7f9fc;
+            --bg-card: #ffffff;
+            --text: #333333;
+            --font-family: 'Open Sans', sans-serif;
+        }
+
+        body {
+            font-family: var(--font-family);
+            background-color: var(--bg-body);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+        }
+
+        #app-container {
+            background-color: var(--bg-card);
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+            text-align: center;
+            max-width: 600px;
+            width: 100%;
+        }
+
+        h1 {
+            color: var(--primary);
+            margin-bottom: 30px;
+        }
+
+        #game-area {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        #display-word {
+            font-size: 3em;
+            font-weight: bold;
+            letter-spacing: 5px;
+            margin: 20px 0;
+            text-transform: uppercase;
+        }
+
+        #options-container {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+        }
+
+        .option-button {
+            padding: 15px 30px;
+            font-size: 1.5em;
+            font-weight: bold;
+            background-color: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: background-color 0.2s, transform 0.1s;
+        }
+
+        .option-button:hover {
+            background-color: #357abd;
+        }
+
+        .option-button:active {
+            transform: scale(0.98);
+        }
+
+        .option-button.correct {
+            background-color: var(--success);
+        }
+
+        .option-button.wrong {
+            background-color: var(--error);
+        }
+
+        #feedback-area {
+            font-size: 1.2em;
+            font-weight: 500;
+            min-height: 1.5em; /* Prevent layout shift */
+        }
+
+        #score-display {
+            font-size: 1.2em;
+            color: #777;
+        }
+
+        #next-button {
+            display: none; /* Hidden initially */
+            padding: 12px 24px;
+            font-size: 1em;
+            background-color: #fca311;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            margin-top: 20px;
+        }
+
+    </style>
+</head>
+<body>
+
+<div id="app-container">
+    <h1>🚀 Blend Blast-Off: Digraph Rockets! 🚀</h1>
+    <p>International School Phonics (Level: Advanced Digraphs)</p>
+
+    <div id="game-area">
+        <div id="display-word">__ain</div>
+
+        <div id="options-container">
+            <button class="option-button" data-blend="ch">CH</button>
+            <button class="option-button" data-blend="sh">SH</button>
+            <button class="option-button" data-blend="th">TH</button>
+        </div>
+
+        <div id="feedback-area"></div>
+        <div id="score-display">Correct Rockets: <span id="current-score">0</span> / 5</div>
+        <button id="next-button">Blast Off Next Rocket!</button>
+    </div>
+</div>
+
+<script>
+    const allWords = [
+        { word: 'ch', fullWord: 'chain' },
+        { word: 'sh', fullWord: 'shout' },
+        { word: 'th', fullWord: 'think' },
+        { word: 'ch', fullWord: 'check' },
+        { word: 'th', fullWord: 'thin' },
+        { word: 'sh', fullWord: 'ship' },
+        { word: 'ch', fullWord: 'lunch' },
+        { word: 'th', fullWord: 'cloth' },
+        { word: 'sh', fullWord: 'trash' },
+        { word: 'ch', fullWord: 'match' },
+    ];
+
+    let currentLevel = 0;
+    let score = 0;
+    let currentWords = [];
+    let isGameOver = false;
+
+    // Shuffle and pick 5 words
+    function shuffleAndSetWords() {
+        currentWords = allWords.sort(() => 0.5 - Math.random()).slice(0, 5);
+        currentLevel = 0;
+        score = 0;
+        isGameOver = false;
+        updateScoreDisplay();
+        document.getElementById('next-button').style.display = 'none';
+        loadLevel();
+    }
+
+    // Load a single level
+    function loadLevel() {
+        if (isGameOver || currentLevel >= currentWords.length) {
+            endGame();
+            return;
+        }
+
+        const currentData = currentWords[currentLevel];
+        const { word, fullWord } = currentData;
+        
+        // Show the word with a blank
+        const displayWord = fullWord.replace(new RegExp(word, 'i'), '__');
+        document.getElementById('display-word').textContent = displayWord;
+
+        // Clear feedback and button states
+        const feedback = document.getElementById('feedback-area');
+        feedback.textContent = '';
+        const buttons = document.querySelectorAll('.option-button');
+        buttons.forEach(button => {
+            button.classList.remove('correct', 'wrong');
+            button.disabled = false;
+        });
+        document.getElementById('next-button').style.display = 'none';
+    }
+
+    // Single feedback logic
+    function checkAnswer(selectedBlend, clickedButton) {
+        const correctBlend = currentWords[currentLevel].word;
+        const feedback = document.getElementById('feedback-area');
+        const buttons = document.querySelectorAll('.option-button');
+        
+        // Disable all buttons to prevent multiple clicks
+        buttons.forEach(btn => btn.disabled = true);
+
+        if (selectedBlend === correctBlend) {
+            clickedButton.classList.add('correct');
+            feedback.textContent = `Correct! ${currentWords[currentLevel].fullWord.toUpperCase()}`;
+            feedback.style.color = '#6cc644';
+            score++;
+            updateScoreDisplay();
+        } else {
+            clickedButton.classList.add('wrong');
+            feedback.textContent = `Nice try! The blend was '${correctBlend.toUpperCase()}' for ${currentWords[currentLevel].fullWord.toUpperCase()}.`;
+            feedback.style.color = '#ff4d4f';
+        }
+
+        // Show Next button after 1 second
+        setTimeout(() => {
+            currentLevel++;
+            if (currentLevel < currentWords.length) {
+                 document.getElementById('next-button').style.display = 'inline-block';
+            } else {
+                endGame();
+            }
+        }, 1200);
+    }
+
+    function updateScoreDisplay() {
+        document.getElementById('current-score').textContent = score;
+    }
+
+    function endGame() {
+        isGameOver = true;
+        const feedback = document.getElementById('feedback-area');
+        const displayWord = document.getElementById('display-word');
+        displayWord.textContent = 'Mission Complete!';
+        feedback.textContent = `You launched ${score} of 5 rocket words!`;
+        feedback.style.color = '#4a90e2';
+        document.getElementById('next-button').style.display = 'none';
+        
+        const finalButtonsContainer = document.getElementById('options-container');
+        finalButtonsContainer.innerHTML = '<button onclick="shuffleAndSetWords()" id="restart-button" class="option-button">Play Again!</button>';
+    }
+
+    // Event listener for next button
+    document.getElementById('next-button').addEventListener('click', loadLevel);
+
+    // Initial setup for the first-level logic
+    function init() {
+        // Find option buttons and attach event listeners
+        const buttons = document.querySelectorAll('.option-button');
+        buttons.forEach(button => {
+            button.addEventListener('click', function() {
+                checkAnswer(this.getAttribute('data-blend'), this);
+            });
+        });
+
+        // Set up the play area
+        shuffleAndSetWords();
+    }
+
+    // Start the game when the window loads
+    window.onload = init;
+
+</script>
+
+</body>
+</html>
